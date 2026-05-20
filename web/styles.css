@@ -1,0 +1,235 @@
+/* StepMania Browser - Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+    color: #ffffff;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Loading Screen */
+#loading-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+    z-index: 1000;
+}
+
+.logo h1 {
+    font-size: 4rem;
+    font-weight: bold;
+    text-align: center;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+    0% { filter: hue-rotate(0deg); }
+    50% { filter: hue-rotate(45deg); }
+    100% { filter: hue-rotate(0deg); }
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+/* Progress Bar */
+.progress-container {
+    width: 400px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 2rem 0 1rem;
+}
+
+#progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4ecdc4, #45b7d1);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+}
+
+#loading-status {
+    font-size: 1.1rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.loading-details {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+/* Game Canvas */
+#canvas {
+    display: block;
+    background: #000;
+    width: 800px;
+    height: 600px;
+    max-width: 100vw;
+    max-height: 100vh;
+    outline: none;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+#canvas:focus {
+    border-color: rgba(78, 205, 196, 0.8);
+}
+
+/* Controls Overlay */
+#controls-overlay {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+}
+
+.control-panel {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 1rem;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.control-panel h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    color: #4ecdc4;
+}
+
+.control-panel button {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin: 0.5rem 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.control-panel button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.control-panel button:active {
+    transform: translateY(0);
+}
+
+/* Info Panel */
+#info-panel {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.8rem 1.2rem;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    backdrop-filter: blur(5px);
+    z-index: 100;
+}
+
+#fps-counter, #audio-latency {
+    margin: 0.2rem 0;
+    color: #4ecdc4;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .logo h1 {
+        font-size: 2.5rem;
+    }
+
+    .progress-container {
+        width: 80%;
+        max-width: 300px;
+    }
+
+    #controls-overlay {
+        top: 10px;
+        right: 10px;
+    }
+
+    .control-panel {
+        padding: 0.8rem;
+    }
+
+    .control-panel button {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.85rem;
+    }
+
+    #info-panel {
+        bottom: 10px;
+        left: 10px;
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.loading-animation {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Fullscreen adjustments */
+#canvas:fullscreen {
+    border: none;
+    border-radius: 0;
+    max-width: 100vw;
+    max-height: 100vh;
+    width: 100vw;
+    height: 100vh;
+}

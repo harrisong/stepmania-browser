@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="StepMania - Rhythm game running in your browser via WebAssembly">
+    <title>StepMania Browser</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="container">
+        <div id="loading-screen">
+            <div class="logo">
+                <h1>StepMania</h1>
+                <p class="subtitle">Browser Edition</p>
+            </div>
+            <div class="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+            <p id="loading-status">Initializing...</p>
+            <p class="loading-details" id="loading-details">Click anywhere to enable audio after loading.</p>
+        </div>
+
+        <canvas id="canvas" tabindex="1" width="1280" height="720"></canvas>
+
+        <div id="controls-overlay">
+            <div class="control-panel">
+                <h3>Controls</h3>
+                <button id="fullscreen-btn">Fullscreen</button>
+                <div id="info-panel">
+                    <div id="fps-counter">FPS: --</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        canvas.width = 1280;
+        canvas.height = 720;
+        canvas.style.width = '1280px';
+        canvas.style.height = '720px';
+
+        var Module = {
+            canvas: canvas,
+            preRun: [function() {
+                if (Module.canvas) {
+                    Module.canvas.width = 1280;
+                    Module.canvas.height = 720;
+                }
+            }]
+        };
+    </script>
+    <script src="stepmania.js"></script>
+    <script>
+        const statusEl = document.getElementById('loading-status');
+        const detailsEl = document.getElementById('loading-details');
+        const progressBar = document.getElementById('progress-bar');
+        const loadingScreen = document.getElementById('loading-screen');
+
+        let totalDeps = 0;
+
+        const moduleConfig = {
+            canvas: Module.canvas,
+            preRun: Module.preRun,
+
+            print: function(text) { console.log('[StepMania]', text); },
+            printErr: function(text) { console.error('[StepMania]', text); },
+
+            setStatus: function(text) {
+                if (statusEl) statusEl.textContent = text || 'Ready';
+                if (!text && loadingScreen) {
+                    setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
+                }
+            },
+
+            monitorRunDependencies: function(left) {
+                totalDeps = Math.max(totalDeps, left);
+                if (progressBar && totalDeps > 0) {
+                    const percent = ((totalDeps - left) / totalDeps) * 100;
+                    progressBar.style.width = percent + '%';
+                }
+                moduleConfig.setStatus(left
+                    ? 'Loading (' + (totalDeps - left) + '/' + totalDeps + ')...'
+                    : null);
+            },
+
+            onRuntimeInitialized: function() {
+                moduleConfig.setStatus('Starting game...');
+            }
+        };
+
+        StepMania(moduleConfig).then(function(instance) {
+            window.Module = instance;
+        }).catch(function(err) {
+            console.error('[Init] Failed to load StepMania:', err);
+            if (statusEl) statusEl.textContent = 'Error: ' + err.message;
+            if (detailsEl) detailsEl.textContent = err.stack || err.toString();
+        });
+
+        document.getElementById('fullscreen-btn').addEventListener('click', function() {
+            if (canvas.requestFullscreen) canvas.requestFullscreen();
+            else if (canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen();
+        });
+
+        let lastFrame = Date.now();
+        let frameCount = 0;
+        function updateFPS() {
+            frameCount++;
+            const now = Date.now();
+            if (now - lastFrame >= 1000) {
+                const fpsEl = document.getElementById('fps-counter');
+                if (fpsEl) fpsEl.textContent = 'FPS: ' + frameCount;
+                frameCount = 0;
+                lastFrame = now;
+            }
+            requestAnimationFrame(updateFPS);
+        }
+        updateFPS();
+    </script>
+</body>
+</html>

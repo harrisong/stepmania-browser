@@ -1,0 +1,68 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [5_1-new]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (Emscripten release)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 5.0.7
+          actions-cache-folder: emsdk-cache
+
+      - name: Verify Emscripten
+        run: emcc --version
+
+      - name: Configure (release)
+        run: |
+          mkdir -p build-web-release
+          cd build-web-release
+          emcmake cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -C ../CMakeLists.emscripten.txt
+
+      - name: Build
+        run: |
+          cd build-web-release
+          emmake make -j$(nproc)
+
+      - name: Stage Pages site
+        run: |
+          mkdir -p site
+          cp web/index.html site/index.html
+          # Release build outputs are named stepmania.{js,wasm,data} at the repo root.
+          cp stepmania.js stepmania.wasm stepmania.data site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

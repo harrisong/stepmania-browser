@@ -1,0 +1,135 @@
+# Emscripten-specific CMake configuration for StepMania Browser Port
+# Usage: emcmake cmake -C CMakeLists.emscripten.txt ..
+
+# Force Emscripten platform detection
+if(EMSCRIPTEN)
+  message(STATUS "Building StepMania for WebAssembly with Emscripten")
+
+  # Set build options for browser target
+  set(WITH_SDL ON CACHE BOOL "Use SDL2 (required for Emscripten)" FORCE)
+  set(WITH_GLES2 ON CACHE BOOL "Use OpenGL ES 2.0 (WebGL)" FORCE)
+
+  # Audio formats - Keep OGG/Vorbis, disable MP3
+  set(WITH_WAV ON CACHE BOOL "WAV support" FORCE)
+  set(WITH_OGG ON CACHE BOOL "Ogg/Vorbis support (works in browsers)" FORCE)
+  set(WITH_MP3 OFF CACHE BOOL "Disable MP3 (libmad not available)" FORCE)
+
+  # Use bundled libraries (Emscripten compatible)
+  # Note: PNG and ZLIB are provided by Emscripten ports (USE_LIBPNG=1, USE_ZLIB=1)
+  # but CMake still expects bundled versions for include paths
+  set(WITH_SYSTEM_GLEW OFF CACHE BOOL "Don't use system GLEW" FORCE)
+  set(WITH_SYSTEM_PNG OFF CACHE BOOL "Use bundled PNG" FORCE)
+  set(WITH_SYSTEM_OGG OFF CACHE BOOL "Use bundled OGG" FORCE)
+  set(WITH_SYSTEM_JPEG OFF CACHE BOOL "Use bundled JPEG" FORCE)
+  set(WITH_SYSTEM_PCRE OFF CACHE BOOL "Use bundled PCRE" FORCE)
+  set(WITH_SYSTEM_ZLIB OFF CACHE BOOL "Use bundled ZLIB" FORCE)
+  set(WITH_SYSTEM_JSONCPP OFF CACHE BOOL "Use bundled jsoncpp" FORCE)
+  set(WITH_SYSTEM_TOMMATH OFF CACHE BOOL "Use bundled tommath" FORCE)
+  set(WITH_SYSTEM_TOMCRYPT OFF CACHE BOOL "Use bundled tomcrypt" FORCE)
+
+  # Disable incompatible features
+  set(WITH_FFMPEG OFF CACHE BOOL "Disable FFmpeg (use HTML5 video later)" FORCE)
+  set(WITH_MINIMAID OFF CACHE BOOL "Disable USB lights" FORCE)
+  set(WITH_NETWORKING OFF CACHE BOOL "Disable networking for initial build" FORCE)
+  set(WITH_CRASH_HANDLER OFF CACHE BOOL "No crash handler in browser" FORCE)
+  set(WITH_GPL_LIBS OFF CACHE BOOL "Disable GPL libs (no libmad)" FORCE)
+  set(WITH_SSE2 OFF CACHE BOOL "No SSE2 in WASM (yet)" FORCE)
+  set(WITH_PARALLEL_PORT OFF CACHE BOOL "No parallel port in browser" FORCE)
+  set(WITH_TTY OFF CACHE BOOL "No TTY in browser" FORCE)
+  set(WITH_GTK3 OFF CACHE BOOL "No GTK in browser" FORCE)
+  set(WITH_PROFILING OFF CACHE BOOL "Disable profiling for initial build" FORCE)
+
+  # Emscripten compiler flags. The -sUSE_*=1 ports flags must be on the
+  # compile line, not just the link line — without them, emcc doesn't
+  # populate the port headers (SDL2/, vorbis/, zlib.h, png.h) into the
+  # sysroot, and includes fail with "file not found" on a clean runner.
+  set(SM_EMSCRIPTEN_PORTS "-sUSE_SDL=2 -sUSE_OGG=1 -sUSE_VORBIS=1 -sUSE_ZLIB=1 -sUSE_LIBPNG=1")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -DSUPPORT_GLES2 ${SM_EMSCRIPTEN_PORTS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SM_EMSCRIPTEN_PORTS}")
+
+  # Emscripten linker flags
+  set(EMSCRIPTEN_LINK_FLAGS "")
+
+  # SDL2 support (Emscripten provides)
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s USE_SDL=2")
+
+  # WebGL support - Try WebGL 2.0 for better SDL compatibility
+  # WebGL 2.0 has better EGL support in Emscripten SDL
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s USE_WEBGL2=1")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s MIN_WEBGL_VERSION=2")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s MAX_WEBGL_VERSION=2")
+
+  # Audio codec support
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s USE_OGG=1")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s USE_VORBIS=1")
+
+  # Use Emscripten's system zlib and libpng (fixes PNG decompression in WASM)
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s USE_ZLIB=1")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s USE_LIBPNG=1")
+
+  # Memory settings
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s ALLOW_MEMORY_GROWTH=1")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s INITIAL_MEMORY=134217728")  # 128MB
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s MAXIMUM_MEMORY=536870912")  # 512MB
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s STACK_SIZE=5242880")        # 5MB
+
+  # Export functions
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s EXPORTED_FUNCTIONS=['_main','_malloc','_free']")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','FS']")
+
+  # Filesystem support
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s FORCE_FILESYSTEM=1")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-lidbfs.js")  # IndexedDB filesystem
+
+  # Async support - DISABLED due to virtual function table issues with ASYNCIFY
+  # list(APPEND EMSCRIPTEN_LINK_FLAGS "-s ASYNCIFY=1")
+  # list(APPEND EMSCRIPTEN_LINK_FLAGS "-s ASYNCIFY_STACK_SIZE=65536")
+  # list(APPEND EMSCRIPTEN_LINK_FLAGS "-s ASYNCIFY_IGNORE_INDIRECT=1")
+
+  # Error handling
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s ASSERTIONS=1")  # Enable for debug
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s SAFE_HEAP=0")   # Disable for performance
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s STACK_OVERFLOW_CHECK=0")
+
+  # Optimization flags (adjust for debug/release)
+  if(CMAKE_BUILD_TYPE MATCHES Debug)
+    # Note: DEMANGLE_SUPPORT was removed in Emscripten 5.0
+    # Demangling now happens automatically in debug builds
+    list(APPEND EMSCRIPTEN_LINK_FLAGS "-g3")
+    list(APPEND EMSCRIPTEN_LINK_FLAGS "-s ASSERTIONS=2")
+    list(APPEND EMSCRIPTEN_LINK_FLAGS "--source-map-base http://localhost:8080/")
+  else()
+    list(APPEND EMSCRIPTEN_LINK_FLAGS "-O3")
+    list(APPEND EMSCRIPTEN_LINK_FLAGS "-flto")
+    list(APPEND EMSCRIPTEN_LINK_FLAGS "--closure 1")
+  endif()
+
+  # Preload essential assets (mount to relative paths, not absolute)
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/NoteSkins@NoteSkins")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/Themes@Themes")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/Data@Data")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/Characters@Characters")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/BGAnimations@BGAnimations")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/BackgroundEffects@BackgroundEffects")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/BackgroundTransitions@BackgroundTransitions")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/Announcers@Announcers")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "--preload-file ${CMAKE_SOURCE_DIR}/Songs@Songs")
+
+  # Output settings
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s MODULARIZE=1")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s EXPORT_NAME='StepMania'")
+
+  # Shell file for HTML wrapper
+  # list(APPEND EMSCRIPTEN_LINK_FLAGS "--shell-file ${CMAKE_SOURCE_DIR}/web/shell.html")
+
+  # Join all flags
+  string(REPLACE ";" " " EMSCRIPTEN_LINK_FLAGS_STR "${EMSCRIPTEN_LINK_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${EMSCRIPTEN_LINK_FLAGS_STR}")
+
+  # Set executable suffix
+  set(CMAKE_EXECUTABLE_SUFFIX ".html" CACHE STRING "Executable suffix for Emscripten")
+
+  message(STATUS "Emscripten flags configured")
+  message(STATUS "Link flags: ${CMAKE_EXE_LINKER_FLAGS}")
+
+endif()
