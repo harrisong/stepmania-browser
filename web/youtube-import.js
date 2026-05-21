@@ -71,15 +71,25 @@
             await waitForModule();
             const FS = moduleInstance.FS;
 
-            const dirName = `${data.artist} - ${data.title}`.replace(/[<>:"/\\|?*]/g, '_');
+            const dirName = `${data.artist} - ${data.title}`
+                .replace(/[<>:"/\\|?*\u0000-\u001f『』【】⧸]/g, '_')
+                .replace(/_{2,}/g, '_')
+                .substring(0, 80);
             const songPath = `${SONGS_BASE}/${dirName}`;
 
-            // Create directory tree
+            // Ensure parent directories exist
+            try { FS.mkdir('/Songs'); } catch(e) {}
+            try { FS.mkdir('/Songs/YouTube'); } catch(e) {}
             try { FS.mkdirTree(songPath); } catch(e) { /* exists */ }
 
             // Write files
-            FS.writeFile(`${songPath}/song.ogg`, oggBytes);
-            FS.writeFile(`${songPath}/song.sm`, smText);
+            try {
+                FS.writeFile(`${songPath}/song.ogg`, oggBytes);
+                FS.writeFile(`${songPath}/song.sm`, smText);
+            } catch(e) {
+                setStatus(`❌ FS write error: ${e.message} (path: ${songPath})`, true);
+                return;
+            }
 
             // Persist to IndexedDB
             FS.syncfs(false, err => { if (err) console.error('[IDBFS] sync error:', err); });
