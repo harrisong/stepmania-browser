@@ -72,9 +72,11 @@
             const FS = moduleInstance.FS;
 
             const dirName = `${data.artist} - ${data.title}`
-                .replace(/[<>:"/\\|?*\u0000-\u001f『』【】⧸]/g, '_')
-                .replace(/_{2,}/g, '_')
-                .substring(0, 80);
+                .replace(/[^\x20-\x7E]/g, '')
+                .replace(/[<>:"/\\|?*]/g, '_')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .substring(0, 60) || 'imported_song';
             const songPath = `${SONGS_BASE}/${dirName}`;
 
             // Ensure parent directories exist
