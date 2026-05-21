@@ -37,13 +37,13 @@ def import_youtube(url: str, difficulty: str = "Medium") -> dict:
 
         # Find and convert thumbnail to PNG for background/banner
         bg_b64 = None
-        thumb_dir = Path(mp3_path).parent
+        mp3_stem = Path(mp3_path).stem
         for ext in ['webp', 'jpg', 'jpeg', 'png']:
-            thumbs = list(thumb_dir.glob(f"*.{ext}"))
-            if thumbs:
+            thumb_path = Path(mp3_path).with_suffix(f'.{ext}')
+            if thumb_path.exists():
                 png_path = Path(tmp) / "bg.png"
                 r2 = subprocess.run(
-                    ["ffmpeg", "-y", "-i", str(thumbs[0]), "-vf", "scale=640:-1", str(png_path)],
+                    ["ffmpeg", "-y", "-i", str(thumb_path), "-vf", "scale=640:-1", str(png_path)],
                     capture_output=True
                 )
                 if r2.returncode == 0 and png_path.exists():
