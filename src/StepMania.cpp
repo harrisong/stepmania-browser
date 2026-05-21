@@ -1697,6 +1697,20 @@ static int LuaFunc_update_centering(lua_State* L)
 }
 LUAFUNC_REGISTER_COMMON(update_centering);
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+extern "C" {
+// Callable from JavaScript: Module.ccall('sm_reload_songs', 'number', [], [])
+EMSCRIPTEN_KEEPALIVE int sm_reload_songs()
+{
+	if( SONGMAN == nullptr )
+		return -1;
+	SONGMAN->Reload( false, nullptr );
+	return 0;
+}
+}
+#endif
+
 /*
  * (c) 2001-2004 Chris Danford, Glenn Maynard
  * All rights reserved.

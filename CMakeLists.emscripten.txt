@@ -74,7 +74,7 @@ if(EMSCRIPTEN)
   list(APPEND EMSCRIPTEN_LINK_FLAGS "-s STACK_SIZE=5242880")        # 5MB
 
   # Export functions
-  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s EXPORTED_FUNCTIONS=['_main','_malloc','_free']")
+  list(APPEND EMSCRIPTEN_LINK_FLAGS "-s EXPORTED_FUNCTIONS=['_main','_malloc','_free','_sm_reload_songs']")
   list(APPEND EMSCRIPTEN_LINK_FLAGS "-s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','FS']")
 
   # Filesystem support

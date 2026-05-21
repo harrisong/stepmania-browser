@@ -50,6 +50,16 @@
                 }
             }]
         };
+
+        // IDBFS persistence for imported songs
+        window.smSyncFS = function(callback) {
+            if (window.Module && window.Module.FS) {
+                window.Module.FS.syncfs(false, function(err) {
+                    if (err) console.error('[IDBFS] sync error:', err);
+                    if (callback) callback(err);
+                });
+            }
+        };
     </script>
     <script src="stepmania.js"></script>
     <script>
@@ -86,6 +96,19 @@
             },
 
             onRuntimeInitialized: function() {
+                // Mount IDBFS for persistent song storage
+                try {
+                    var FS = this.FS || Module.FS;
+                    if (FS) {
+                        try { FS.mkdir('/Songs/YouTube'); } catch(e) {}
+                        FS.mount(FS.filesystems.IDBFS, {}, '/Songs/YouTube');
+                        // Load previously saved songs from IndexedDB
+                        FS.syncfs(true, function(err) {
+                            if (err) console.error('[IDBFS] initial load error:', err);
+                            else console.log('[IDBFS] Loaded saved songs from IndexedDB');
+                        });
+                    }
+                } catch(e) { console.warn('[IDBFS] mount failed:', e); }
                 moduleConfig.setStatus('Starting game...');
             }
         };
@@ -118,5 +141,7 @@
         }
         updateFPS();
     </script>
+    <script src="youtube-import.js"></script>
+    <script src="file-drop-import.js"></script>
 </body>
 </html>
