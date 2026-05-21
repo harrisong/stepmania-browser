@@ -102,6 +102,12 @@
                 FS.writeFile(`${songPath}/song.ogg`, oggBytes);
                 console.log('[Import] Writing SM');
                 FS.writeFile(`${songPath}/song.sm`, smText);
+                // Write background image if available
+                if (data.bg_b64) {
+                    const bgBytes = Uint8Array.from(atob(data.bg_b64), c => c.charCodeAt(0));
+                    FS.writeFile(`${songPath}/bg.png`, bgBytes);
+                    console.log('[Import] Wrote bg.png, size:', bgBytes.length);
+                }
                 console.log('[Import] Write success');
             } catch(e) {
                 console.error('[Import] writeFile failed:', e, 'errno:', e.errno, 'code:', e.code);

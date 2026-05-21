@@ -35,12 +35,30 @@ def import_youtube(url: str, difficulty: str = "Medium") -> dict:
         if r.returncode != 0:
             return {"error": "FFmpeg conversion failed"}
 
-        # Generate .sm content
-        sm_content = importer.generate_sm_file(title, artist, "song.ogg", bpm, duration)
+        # Find and convert thumbnail to PNG for background/banner
+        bg_b64 = None
+        thumb_dir = Path(mp3_path).parent
+        for ext in ['webp', 'jpg', 'jpeg', 'png']:
+            thumbs = list(thumb_dir.glob(f"*.{ext}"))
+            if thumbs:
+                png_path = Path(tmp) / "bg.png"
+                r2 = subprocess.run(
+                    ["ffmpeg", "-y", "-i", str(thumbs[0]), "-vf", "scale=640:-1", str(png_path)],
+                    capture_output=True
+                )
+                if r2.returncode == 0 and png_path.exists():
+                    bg_b64 = base64.b64encode(png_path.read_bytes()).decode()
+                break
 
-        # Return base64-encoded OGG + sm text
+        # Generate .sm content with background reference
+        sm_content = importer.generate_sm_file(title, artist, "song.ogg", bpm, duration)
+        if bg_b64:
+            sm_content = sm_content.replace("#BACKGROUND:;", "#BACKGROUND:bg.png;")
+            sm_content = sm_content.replace("#BANNER:;", "#BANNER:bg.png;")
+
+        # Return base64-encoded OGG + sm text + optional background
         ogg_b64 = base64.b64encode(ogg_path.read_bytes()).decode()
-        return {
+        result = {
             "success": True,
             "title": title,
             "artist": artist,
@@ -50,6 +68,9 @@ def import_youtube(url: str, difficulty: str = "Medium") -> dict:
             "sm": sm_content,
             "ogg_b64": ogg_b64,
         }
+        if bg_b64:
+            result["bg_b64"] = bg_b64
+        return result
 
 
 class Handler(BaseHTTPRequestHandler):
