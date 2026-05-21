@@ -97,16 +97,16 @@
 
             onRuntimeInitialized: function() {
                 // Mount IDBFS for persistent song storage
+                // TEMPORARILY DISABLED for debugging
                 try {
                     var FS = this.FS || Module.FS;
                     if (FS) {
                         try { FS.mkdir('/Songs/YouTube'); } catch(e) {}
-                        FS.mount(FS.filesystems.IDBFS, {}, '/Songs/YouTube');
-                        // Load previously saved songs from IndexedDB
-                        FS.syncfs(true, function(err) {
-                            if (err) console.error('[IDBFS] initial load error:', err);
-                            else console.log('[IDBFS] Loaded saved songs from IndexedDB');
-                        });
+                        // FS.mount(FS.filesystems.IDBFS, {}, '/Songs/YouTube');
+                        // FS.syncfs(true, function(err) {
+                        //     if (err) console.error('[IDBFS] initial load error:', err);
+                        //     else console.log('[IDBFS] Loaded saved songs from IndexedDB');
+                        // });
                     }
                 } catch(e) { console.warn('[IDBFS] mount failed:', e); }
                 moduleConfig.setStatus('Starting game...');

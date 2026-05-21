@@ -56,8 +56,8 @@
         try { FS.mkdirTree(songPath); } catch(e) {}
         FS.writeFile(`${songPath}/${musicFile}`, new Uint8Array(audioBytes));
         FS.writeFile(`${songPath}/song.sm`, smText);
-        // Persist to IndexedDB
-        FS.syncfs(false, err => { if (err) console.error('[IDBFS] sync error:', err); });
+        // Persist to IndexedDB (if IDBFS mounted)
+        if (FS.syncfs) FS.syncfs(false, err => { if (err) console.error('[IDBFS] sync error:', err); });
         // Auto-reload song list
         try { window.Module.ccall('sm_reload_songs', 'number', [], []); } catch(e) {}
         return true;

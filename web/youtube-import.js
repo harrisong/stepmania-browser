@@ -80,21 +80,48 @@
             const songPath = `${SONGS_BASE}/${dirName}`;
 
             // Ensure parent directories exist
-            try { FS.mkdir('/Songs'); } catch(e) {}
-            try { FS.mkdir('/Songs/YouTube'); } catch(e) {}
-            try { FS.mkdirTree(songPath); } catch(e) { /* exists */ }
+            console.log('[Import] FS available:', !!FS);
+            console.log('[Import] /Songs exists:', (() => { try { FS.stat('/Songs'); return true; } catch(e) { return false; } })());
+            console.log('[Import] /Songs readdir:', (() => { try { return FS.readdir('/Songs'); } catch(e) { return e.message; } })());
+            try { FS.mkdir('/Songs'); } catch(e) { console.log('[Import] mkdir /Songs:', e.message); }
+            try { FS.mkdir('/Songs/YouTube'); } catch(e) { console.log('[Import] mkdir /Songs/YouTube:', e.message); }
+            try {
+                const parts = dirName.split('/');
+                let path = '/Songs/YouTube';
+                for (const p of parts) {
+                    if (p) { path += '/' + p; try { FS.mkdir(path); } catch(e) { console.log('[Import] mkdir', path, e.message); } }
+                }
+            } catch(e) {}
+            console.log('[Import] songPath exists:', (() => { try { FS.stat(songPath); return true; } catch(e) { return false; } })());
 
             // Write files
             try {
+                try { FS.unlink(`${songPath}/song.ogg`); } catch(e) {}
+                try { FS.unlink(`${songPath}/song.sm`); } catch(e) {}
+                console.log('[Import] Writing OGG, size:', oggBytes.length);
                 FS.writeFile(`${songPath}/song.ogg`, oggBytes);
+                console.log('[Import] Writing SM');
                 FS.writeFile(`${songPath}/song.sm`, smText);
+                console.log('[Import] Write success');
             } catch(e) {
-                setStatus(`❌ FS write error: ${e.message} (path: ${songPath})`, true);
-                return;
+                console.error('[Import] writeFile failed:', e, 'errno:', e.errno, 'code:', e.code);
+                // Fallback: try writing to /tmp
+                try {
+                    FS.mkdir('/tmp/song'); 
+                } catch(e2) {}
+                try {
+                    FS.writeFile('/tmp/song/song.ogg', oggBytes);
+                    FS.writeFile('/tmp/song/song.sm', smText);
+                    setStatus(`⚠️ Wrote to /tmp/song (FS issue with ${songPath}): ${e.message}`, true);
+                    return;
+                } catch(e3) {
+                    setStatus(`❌ FS completely broken: ${e.message}. Is the game loaded?`, true);
+                    return;
+                }
             }
 
-            // Persist to IndexedDB
-            FS.syncfs(false, err => { if (err) console.error('[IDBFS] sync error:', err); });
+            // Persist to IndexedDB (if IDBFS mounted)
+            if (FS.syncfs) FS.syncfs(false, err => { if (err) console.error('[IDBFS] sync error:', err); });
 
             // Auto-reload song list
             try { moduleInstance.ccall('sm_reload_songs', 'number', [], []); } catch(e) {}
